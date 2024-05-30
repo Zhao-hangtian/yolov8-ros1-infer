@@ -1,8 +1,8 @@
 <!--
  * @Author: Zhao Hangtian jp-vip@qq.com
  * @Date: 2023-11-22 07:49:32
- * @LastEditors: Zhao Hangtian jp-vip@qq.com
- * @LastEditTime: 2024-05-30 13:10:33
+ * @LastEditors: Zhao Hangtian iamzhaohangtian@gmail.com
+ * @LastEditTime: 2024-05-30 13:20:19
  * @Description: 
  * 
  * Copyright (c) 2024 by Zhao Hangtian, All Rights Reserved. 
@@ -25,7 +25,7 @@
 
 `source devel/setup.bash`
 
-如果出错就删除`rm -rf build devel`
+如果过程出错就删除`rm -rf build devel`然后重新编译`catkin_make`
 
 本工程基于ultralytics的封装模型进行示范, jetson的环境搭建请参考[ultralytics的指南](https://docs.ultralytics.com/zh/guides/nvidia-jetson/)
 
