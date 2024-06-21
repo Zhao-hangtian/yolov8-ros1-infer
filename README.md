@@ -93,3 +93,49 @@ float32[] bbox_conf
 # TODO
 - [ ] model兼容ONNX
 - [ ] model兼容tensorRT
+
+
+<h1 align="center">Coordinates computation</h1>
+
+# 1. 启动节点
+
+- 首先确保启动相机驱动节点与雷达/里程计节点
+- 随后启动检测环境节点
+  ``` 
+    roslaunch py_yolov8 yolov8.launch
+  ```
+  - launch文件参数：
+    - 设置image_topics以更改输入检测图像的topic
+    - 设置bbox_conf_thre以设置发布bbox的置信度阈值
+    - 设置save_img和save_frequency分别控制是否保存检测图像和保存频率
+- 然后启动坐标计算节点
+  ``` 
+    roslaunch target_dist_calculator target_dist.launch
+  ```
+  - launch文件参数：
+    - 设置dist_thre_add_point与dist_thre_final参数控制点云的筛选
+
+# 2. 程序框架
+
+![alt text](misp/image_target_dist.png)
+- 坐标计算方法
+  - 首先，对于每一个Bbox，在像素坐标系中求出其中心点$P^{pixel}_{1}$
+  - 根据相机内参，将坐标转换为相机系坐标$P^{camera}_{1} (Z=1)$
+  - 根据相机外参，将坐标转换为Body机体系坐标$P^{body}_{1}$
+  - 转换后的端点$P^{body}_{1}$与摄像头源点$P^{body}_{0}$所在的向量$\vec{v}^{body} = P^{body}_{1}-P^{body}_{0}$代表了目标物在Body坐标系中的方向(bearing)
+  - 遍历雷达点云，找到离方向向量$\vec{v}^{body}$最近的点云中的点，如有多个点的距离小于给定的阈值，则把这些点都加入点集：$C_{point}$
+  - 取点集$C_{point}$中平均点作为目标在Body系的3D位置$P^{body}_{target}$
+  - 由Odometry节点发布的Body系到Map系的变换，将目标在Body系的3D位置$P^{body}_{target}$转换为World系的3D位置$P^{World}_{target}$
+
+# 3. 注意
+
+- 相机位置变更时，需要更改如下参数:
+```
+self.rotation_matrix
+self.translation_vector
+def check_point_validation(self, camera, point)
+```
+- 如需更改检测频率，可直接更改相机驱动频率fps：
+```
+roslaunch oakcam_ffc_4p_ros oakcam_ffc_4p.launch fps:=10
+```

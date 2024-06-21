@@ -10,6 +10,7 @@ Copyright (c) 2024 by Zhao Hangtian, All Rights Reserved.
 '''
 
 
+from datetime import datetime
 import os
 import rospy
 import sys
@@ -19,6 +20,8 @@ import cv2
 from cv_bridge import CvBridge, CvBridgeError
 from ultralytics import YOLO
 import numpy as np
+import time
+from std_msgs.msg import Header
 
 model = None
 model_path =None
@@ -29,71 +32,123 @@ bridge = CvBridge()
 
 # Buffer to store images
 image_buffer = []
-
 # Dictionary to store publishers for each topic
 publishers = {}
+time_sum = 0
+last_save_time = {}
+current_dir = os.path.dirname(os.path.realpath(__file__))
 
 def callback(data, topic):
     try:
-        
         if topic.endswith('compressed'):
             np_arr = np.frombuffer(data.data, np.uint8)
             cv_image = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
+            timestamp = data.header.stamp
         else:
             # Convert ROS Image message to OpenCV image
             cv_image = bridge.imgmsg_to_cv2(data, "bgr8")
-        
+        # time_error = rospy.Time.now() - data.header.stamp
+        # print('time from publish to receive:%f'%time_error.to_sec())
+        current_time = rospy.Time.now()
+        if save_img and (topic not in last_save_time or (current_time - last_save_time[topic]).to_sec() >= (1/save_frequency)):
+            timestamp = datetime.now().strftime("%Y-%m-%d-%H-%M-%S-%f")
+            save_dir = os.path.join(current_dir, "imgs", topic.strip("/").replace("/", "_"))
+            if not os.path.exists(save_dir):
+                os.makedirs(save_dir)
+            file_path = os.path.join(save_dir, f"{timestamp}.jpg")
+            cv2.imwrite(file_path, cv_image)
+            rospy.loginfo(f"Saved image to {file_path}")
+            last_save_time[topic] = current_time       
     except CvBridgeError as e:
         rospy.logerr(e)
         return
 
     # Add the image to the buffer
-    image_buffer.append((cv_image, topic))
+    image_buffer.append((cv_image, topic, timestamp))
 
     # If we have received images from all topics, process the batch
     if len(image_buffer) == len(image_topics):
         process_batch()
 
+def compress_image(image):
+    encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), 90]
+    result, encimg = cv2.imencode('.jpg', image, encode_param)
+    compressed_image = cv2.imdecode(encimg, 1)
+    return compressed_image
+
 def process_batch():
     global image_buffer
+    global time_sum, cnt
 
     # Extract images from the buffer
-    images = [img for img, _ in image_buffer]
-
+    images = [img for img, _, _ in image_buffer]
+    
+    # start_time = time.time()
     # Perform batch inference
-    results = model(images)
+    results = model(images, verbose=False)
+    # end_time = time.time()
+    # total_time = end_time - start_time
+    # rospy.loginfo("Detection time: %f", total_time)
+    
 
     # Iterate over each image and its corresponding results
-    for (cv_image, topic), result in zip(image_buffer, results):
+    for (cv_image, topic, timestamp), result in zip(image_buffer, results):
         
         # result exam & format:
         # bbox_xyxy: array([[     474.73,      729.63,      787.31,      799.78]], dtype=float32)
         # bbox_cls: array([          0], dtype=float32)
         # bbox_conf: array([    0.38333], dtype=float32)
         
-        bbox_xyxy = result.boxes.xyxy.cpu().numpy().flatten()
-        bbox_cls = result.boxes.cls.cpu().numpy().flatten()
-        bbox_conf = result.boxes.conf.cpu().numpy().flatten()
+        # bbox_xyxy = result.boxes.xyxy.cpu().numpy().flatten()
+        # bbox_cls = result.boxes.cls.cpu().numpy().flatten()
+        # bbox_conf = result.boxes.conf.cpu().numpy().flatten()
+        
+        bbox_xyxy_all = result.boxes.xyxy.cpu().numpy()
+        bbox_cls_all = result.boxes.cls.cpu().numpy()
+        bbox_conf_all = result.boxes.conf.cpu().numpy()
+
+        bbox_xyxy = []
+        bbox_cls = []
+        bbox_conf = []
+
+        for i in range(bbox_conf_all.shape[0]):
+            if bbox_conf_all[i] > bbox_conf_thre:
+                bbox_xyxy.append(bbox_xyxy_all[i])
+                bbox_cls.append(bbox_cls_all[i])
+                bbox_conf.append(bbox_conf_all[i])
+
+        # Convert lists to numpy arrays
+        bbox_xyxy = np.array(bbox_xyxy).flatten()
+        bbox_cls = np.array(bbox_cls).flatten()
+        bbox_conf = np.array(bbox_conf).flatten()
 
         # Log the bounding box information
-        rospy.loginfo("Topic: %s, Bounding boxes: %s", topic, bbox_xyxy)
-        rospy.loginfo("Topic: %s, Bounding classes: %s", topic, bbox_cls)
-        rospy.loginfo("Topic: %s, Bounding confidences: %s", topic, bbox_conf)
+        if len(bbox_conf) != 0:
+            rospy.loginfo("Topic: %s, Bounding boxes: %s", topic, bbox_xyxy)
+            rospy.loginfo("Topic: %s, Bounding classes: %s", topic, bbox_cls)
+            rospy.loginfo("Topic: %s, Bounding confidences: %s", topic, bbox_conf)
 
+        header = Header()
+        header.stamp = rospy.Time.now() # New timestamp
+        # header.stamp = timestamp # Consistent timestamp, same as original img
+        
+        # print('Publisher error time%f'%(rospy.Time.now()-timestamp).to_sec())
         # Publish bounding box information
         bbox_msg = BoundingBoxArray()
+        bbox_msg.header = header
         bbox_msg.bbox_xyxy = bbox_xyxy
         bbox_msg.bbox_cls = bbox_cls
         bbox_msg.bbox_conf = bbox_conf
         publishers[topic]['bbox'].publish(bbox_msg)
-
         # Annotate the image with bounding boxes
-        annotated_frame = result.plot()
+        annotated_frame = result.plot() # contains bbox conf < conf_thre
 
         # Publish the annotated image
         try:
-            annotated_image_msg = bridge.cv2_to_imgmsg(annotated_frame, "bgr8")
-            publishers[topic]['image'].publish(annotated_image_msg)
+            if publish_raw:
+                annotated_image_msg = bridge.cv2_to_imgmsg(annotated_frame, "bgr8")
+                annotated_image_msg.header = header
+                publishers[topic]['image'].publish(annotated_image_msg)
         except CvBridgeError as e:
             rospy.logerr(e)
 
@@ -102,8 +157,6 @@ def process_batch():
 
 def image_listener(image_topics):
     global publishers
-
-    rospy.init_node('image_listener', anonymous=True)
 
     # Initialize subscribers and publishers
     for topic in image_topics:
@@ -127,12 +180,14 @@ def image_listener(image_topics):
     rospy.spin()
 
 if __name__ == '__main__':
-    if len(sys.argv) < 5:
-        print("Usage: rosrun py_yolov8 py_yolov8.py <model_path> <image_topic1> [<image_topic2> ...]")
-        print("Example: rosrun py_yolov8 py_yolov8.py /home/nv/zht_ws/best.pt /robot/image_CAM_A/compressed /robot/image_CAM_B/compressed")
-        sys.exit(1)
+    rospy.init_node('image_listener', anonymous=True)
+    # if len(sys.argv) < 5:
+    #     print("Usage: rosrun py_yolov8 py_yolov8.py <model_path> <image_topic1> [<image_topic2> ...]")
+    #     print("Example: rosrun py_yolov8 py_yolov8.py /home/nv/zht_ws/best.pt /robot/image_CAM_A/compressed /robot/image_CAM_B/compressed")
+    #     sys.exit(1)
         
-    model_path = sys.argv[1]
+    # model_path = sys.argv[1]
+    model_path = rospy.get_param('~model_path')
     
     print(f'使用模型: {model_path}')
     
@@ -140,12 +195,20 @@ if __name__ == '__main__':
         print(f'{model_path} 文件不存在,请检查!')
         exit(-1)
 
-    image_topics = sys.argv[2:]
-    
+    # image_topics = sys.argv[2:]
+    image_topics = rospy.get_param('~image_topics')
+
     print('监听并处理的topic(s):')
     for topic in image_topics:
         print(topic)
-        
+
+    bbox_conf_thre = rospy.get_param('~bbox_conf_thre', 0.7)
+    print('Bbox threshold:', bbox_conf_thre)
+    save_img = rospy.get_param('~save_img', False)
+    save_frequency = rospy.get_param('~save_frequency', 1)
+    print('Save frequency:', save_frequency)
+    publish_raw = rospy.get_param('~raw_img', True)
+    
     print("初始化,模型加载中...")
     # Initialize the YOLOv8 model
     model = YOLO(model_path)

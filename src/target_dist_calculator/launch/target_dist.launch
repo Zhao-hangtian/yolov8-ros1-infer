@@ -1,0 +1,25 @@
+<launch>
+    <arg name="raw_img" default="True" />
+    <arg name="compress_img" default="False" />
+    <arg name="dist_thre_add_point" default="0.1" />
+    <arg name="dist_thre_final" default="0.1" />
+    <node name="target_dist_calculator" pkg="target_dist_calculator" type="target_dist_node.py" output="screen" >
+        <param name="raw_img" value="$(arg raw_img)" />
+        <param name="compress_img" value="$(arg compress_img)" />
+        <param name="dist_thre_add_point" value="$(arg dist_thre_add_point)" />
+        <param name="dist_thre_final" value="$(arg dist_thre_final)" />
+    </node>
+
+    <group if="$(arg compress_img)">
+        <node name="image_transport_republish_A" pkg="image_transport" type="republish" output="screen" 
+            args="raw in:=/detection/image_CAM_A/target_img_with_coord compressed out:=/detection/image_CAM_A/target_img_with_coord" />
+        <node name="image_transport_republish_B" pkg="image_transport" type="republish" output="screen" 
+            args="raw in:=/detection/image_CAM_B/target_img_with_coord compressed out:=/detection/image_CAM_B/target_img_with_coord" />
+        <node name="image_transport_republish_C" pkg="image_transport" type="republish" output="screen" 
+            args="raw in:=/detection/image_CAM_C/target_img_with_coord compressed out:=/detection/image_CAM_C/target_img_with_coord" />
+        <node name="image_transport_republish_D" pkg="image_transport" type="republish" output="screen" 
+            args="raw in:=/detection/image_CAM_D/target_img_with_coord compressed out:=/detection/image_CAM_D/target_img_with_coord" />
+
+    </group>
+
+</launch>
