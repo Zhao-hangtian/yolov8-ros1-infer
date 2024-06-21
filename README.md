@@ -119,13 +119,13 @@ float32[] bbox_conf
 
 ![alt text](misp/image_target_dist.png)
 - 坐标计算方法
-  - 首先，对于每一个Bbox，在像素坐标系中求出其中心点$P^{pixel}_{1}$
-  - 根据相机内参，将坐标转换为相机系坐标$P^{camera}_{1} (Z=1)$
-  - 根据相机外参，将坐标转换为Body机体系坐标$P^{body}_{1}$
-  - 转换后的端点$P^{body}_{1}$与摄像头源点$P^{body}_{0}$所在的向量$\vec{v}^{body} = P^{body}_{1}-P^{body}_{0}$代表了目标物在Body坐标系中的方向(bearing)
-  - 遍历雷达点云，找到离方向向量$\vec{v}^{body}$最近的点云中的点，如有多个点的距离小于给定的阈值，则把这些点都加入点集：$C_{point}$
-  - 取点集$C_{point}$中平均点作为目标在Body系的3D位置$P^{body}_{target}$
-  - 由Odometry节点发布的Body系到Map系的变换，将目标在Body系的3D位置$P^{body}_{target}$转换为World系的3D位置$P^{World}_{target}$
+  - 首先，对于每一个Bbox，在像素坐标系中求出其中心点 $P^{pixel}_{1}$
+  - 根据相机内参，将坐标转换为相机系坐标 $P^{camera}_{1} (Z=1)$
+  - 根据相机外参，将坐标转换为Body机体系坐标 $P^{body}_{1}$
+  - 转换后的端点 $P^{body}_{1}$ 与摄像头源点 $P^{body}_{0}$ 所在的向量 $\vec{v}^{body} = P^{body}_{1}-P^{body}_{0}$ 代表了目标物在Body坐标系中的方向(bearing)
+  - 遍历雷达点云，找到离方向向量 $\vec{v}^{body}$ 最近的点云中的点，如有多个点的距离小于给定的阈值，则把这些点都加入点集： $C_{point}$
+  - 取点集 $C_{point}$ 中平均点作为目标在Body系的3D位置 $P^{body}_{target}$
+  - 由Odometry节点发布的Body系到Map系的变换，将目标在Body系的3D位置 $P^{body}_{target}$ 转换为World系的3D位置 $P^{World}_{target}$
 
 # 3. 注意
 
