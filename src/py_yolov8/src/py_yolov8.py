@@ -48,17 +48,7 @@ def callback(data, topic):
             # Convert ROS Image message to OpenCV image
             cv_image = bridge.imgmsg_to_cv2(data, "bgr8")
         # time_error = rospy.Time.now() - data.header.stamp
-        # print('time from publish to receive:%f'%time_error.to_sec())
-        current_time = rospy.Time.now()
-        if save_img and (topic not in last_save_time or (current_time - last_save_time[topic]).to_sec() >= (1/save_frequency)):
-            timestamp = datetime.now().strftime("%Y-%m-%d-%H-%M-%S-%f")
-            save_dir = os.path.join(current_dir, "imgs", topic.strip("/").replace("/", "_"))
-            if not os.path.exists(save_dir):
-                os.makedirs(save_dir)
-            file_path = os.path.join(save_dir, f"{timestamp}.jpg")
-            cv2.imwrite(file_path, cv_image)
-            rospy.loginfo(f"Saved image to {file_path}")
-            last_save_time[topic] = current_time       
+        # print('time from publish to receive:%f'%time_error.to_sec())      
     except CvBridgeError as e:
         rospy.logerr(e)
         return
@@ -204,9 +194,6 @@ if __name__ == '__main__':
 
     bbox_conf_thre = rospy.get_param('~bbox_conf_thre', 0.7)
     print('Bbox threshold:', bbox_conf_thre)
-    save_img = rospy.get_param('~save_img', False)
-    save_frequency = rospy.get_param('~save_frequency', 1)
-    print('Save frequency:', save_frequency)
     publish_raw = rospy.get_param('~raw_img', True)
     
     print("初始化,模型加载中...")
