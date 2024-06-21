@@ -127,7 +127,7 @@ float32[] bbox_conf
   - 转换后的端点 $P^{body}_{1}$ 与摄像头源点 $P^{body}_{0}$ 所在的向量 $\vec{v}^{body} = P^{body}_{1}-P^{body}_{0}$ 代表了目标物在Body坐标系中的方向(bearing)
   - 遍历雷达点云，找到离方向向量 $\vec{v}^{body}$ 最近的点云中的点，如有多个点的距离小于给定的阈值，则把这些点都加入点集： $C_{point}$
   - 取点集 $C_{point}$ 中平均点作为目标在Body系的3D位置 $P^{body}_{target}$
-  - 由Odometry节点发布的Body系到Map系的变换，将目标在Body系的3D位置 $P^{body}_{target}$ 转换为World系的3D位置 $P^{World}_{target}$
+  - 由Odometry节点发布的Body系到World系的变换，将目标在Body系的3D位置 $P^{body}_{target}$ 转换为World系的3D位置 $P^{World}_{target}$
 - Latex渲染错误时请下图参见：
 ![alt text](misp/image_latex.png)
 
