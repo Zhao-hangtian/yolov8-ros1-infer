@@ -2,6 +2,7 @@
 
 from collections import deque
 import copy
+import math
 import rospy
 import cv2
 import numpy as np
@@ -17,6 +18,7 @@ import std_msgs.msg
 class TargetDistanceCalculator:
     def __init__(self):
         # Get parameters from the ROS parameter server
+        self.camera_type = rospy.get_param('~camera_type', 1) # 1 for camera in the drone's arm(big drone), 0 for small drone
         self.publish_raw = rospy.get_param('~raw_img', True)
         self.dist_thre_add_point = rospy.get_param('~dist_thre_add_point', 0.1)
         self.dist_thre_final = rospy.get_param('~dist_thre_final', 0.1)
@@ -31,29 +33,55 @@ class TargetDistanceCalculator:
         
         # Define the rotation matrices for each camera
         # NOTE: different type of drones may have different rotation matrices and translation vectors!
-        self.rotation_matrix = {
-            'CAM_A' : np.array([[0,  0, -1],
-                                [1,  0,  0],
-                                [0, -1,  0]]),
-            'CAM_B' : np.array([[-1, 0,  0],
-                                [0,  0, -1],
-                                [0,  -1, 0]]),
-            'CAM_C' : np.array([[0,   0, 1],
-                                [-1,  0, 0],
-                                [0,  -1, 0]]),
-            'CAM_D' : np.array([[1,   0, 0],
-                                [0,   0, 1],
-                                [0,  -1, 0]]),
-        }
+        if self.camera_type == 1: # big drone with camera in the arm
+            tmp = math.sqrt(2) / 2
+            
+            self.rotation_matrix = {
+                'CAM_A' : np.array([[tmp,   0, -tmp],
+                                    [tmp,   0,  tmp],
+                                    [0,     -1,   0]]),
+                'CAM_B' : np.array([[tmp,   0,  tmp],
+                                    [-tmp,  0,  tmp],
+                                    [0,     -1,   0]]),
+                'CAM_C' : np.array([[-tmp,  0,  tmp],
+                                    [-tmp,  0, -tmp],
+                                    [0,     -1,   0]]),
+                'CAM_D' : np.array([[-tmp,  0, -tmp],
+                                    [tmp,   0, -tmp],
+                                    [0,     -1,   0]]),
+            }
 
-        length = 0.01 # length of the arm
-        height = 0.02
-        self.translation_vector = {
-            'CAM_A' : np.array([-length,  0, -height]),
-            'CAM_B' : np.array([0,  -length,  -height]),
-            'CAM_C' : np.array([length, 0,  -height]),
-            'CAM_D' : np.array([0, length, -height]),
-        }
+            length = 0.26 # length of the arm
+            self.translation_vector = {
+                'CAM_A' : np.array([-length, length, 0]),
+                'CAM_B' : np.array([length, length,  0]),
+                'CAM_C' : np.array([length,  -length,  0]),
+                'CAM_D' : np.array([-length,  -length, 0]),
+            }
+        else: # camera_type == 2, small drone
+            self.rotation_matrix = {
+                'CAM_A' : np.array([[0,  0, -1],
+                                    [1,  0,  0],
+                                    [0, -1,  0]]),
+                'CAM_B' : np.array([[-1, 0,  0],
+                                    [0,  0, -1],
+                                    [0,  -1, 0]]),
+                'CAM_C' : np.array([[0,   0, 1],
+                                    [-1,  0, 0],
+                                    [0,  -1, 0]]),
+                'CAM_D' : np.array([[1,   0, 0],
+                                    [0,   0, 1],
+                                    [0,  -1, 0]]),
+            }
+
+            length = 0.01 # length of the arm
+            height = 0.02
+            self.translation_vector = {
+                'CAM_A' : np.array([-length,  0, -height]),
+                'CAM_B' : np.array([0,  -length,  -height]),
+                'CAM_C' : np.array([length, 0,  -height]),
+                'CAM_D' : np.array([0, length, -height]),
+            }
         
         # Set the maximal accepted time difference between computed coordinates and (lidar and odom)
         self.diff = 0.5
@@ -230,16 +258,28 @@ class TargetDistanceCalculator:
     def check_point_validation(self, camera, point):
         # Validate the point based on the camera orientation and point coordinates
         # NOTE: This function should be adjusted based on the camera orientation.
-        if(camera == 'CAM_A' and point[0] < 0):
-            return True
-        elif(camera == 'CAM_B' and point[1] < 0):
-            return True
-        elif(camera == 'CAM_C' and point[0] > 0):
-            return True
-        elif(camera == 'CAM_D' and point[1] > 0):
-            return True
+        if self.camera_type == 1:
+            if(camera == 'CAM_D' and point[0] < 0 and point[1] < 0):
+                return True
+            elif(camera == 'CAM_C' and point[0] > 0 and point[1] < 0):
+                return True
+            elif(camera == 'CAM_B' and point[0] > 0 and point[1] > 0):
+                return True
+            elif(camera == 'CAM_A' and point[0] < 0 and point[1] > 0):
+                return True
+            else:
+                return False
         else:
-            return False
+            if(camera == 'CAM_A' and point[0] < 0):
+                return True
+            elif(camera == 'CAM_B' and point[1] < 0):
+                return True
+            elif(camera == 'CAM_C' and point[0] > 0):
+                return True
+            elif(camera == 'CAM_D' and point[1] > 0):
+                return True
+            else:
+                return False
     
     def select_on_stamp(self, bbox_time, diff):
         # Find the closest lidar and odometry data based on the bounding box timestamp

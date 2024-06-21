@@ -2,7 +2,7 @@
     <arg name="model_path" default="/home/nv/zht_ws/best.pt" />
     <arg name="bbox_conf_thre" default="0.6" />
     <arg name="save_img" default="True" />
-    <arg name="save_frequency" default="0.5" />
+    <arg name="save_frequency" default="1" />
     <arg name="raw_img" default="True" />
     <arg name="compress_img" default="True" />
     <node name="py_yolov8" pkg="py_yolov8" type="py_yolov8.py" output="screen" >

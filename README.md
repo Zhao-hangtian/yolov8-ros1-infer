@@ -116,6 +116,9 @@ float32[] bbox_conf
   ```
   - launch文件参数：
     - 设置dist_thre_add_point与dist_thre_final参数控制点云的筛选
+    - 设置camera_type参数控制飞机内外参，目前可选值如下：
+      - '1': 适用于相机在四个机臂末端的大飞机
+      - '2': 适用于相机在机身中心周围的小飞机
 
 # 2. 程序框架
 

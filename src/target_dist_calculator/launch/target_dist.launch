@@ -1,10 +1,12 @@
 <launch>
     <arg name="raw_img" default="True" />
+    <arg name="camera_type" default="1" />
     <arg name="compress_img" default="False" />
     <arg name="dist_thre_add_point" default="0.1" />
     <arg name="dist_thre_final" default="0.1" />
     <node name="target_dist_calculator" pkg="target_dist_calculator" type="target_dist_node.py" output="screen" >
         <param name="raw_img" value="$(arg raw_img)" />
+        <param name="camera_type" value="$(arg camera_type)" />
         <param name="compress_img" value="$(arg compress_img)" />
         <param name="dist_thre_add_point" value="$(arg dist_thre_add_point)" />
         <param name="dist_thre_final" value="$(arg dist_thre_final)" />
