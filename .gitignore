@@ -1,4 +1,16 @@
 deving/
+new/
+old/
+**.pt
+**.engine
+**.onnx
+src/py_yolov8/src/imgs/
+src/target_dist_calculator/
+src/py_yolov8/src/bus.jpg
+**.bag
+**.json
+**.rviz
+
 
 *.pt
 # Prerequisites

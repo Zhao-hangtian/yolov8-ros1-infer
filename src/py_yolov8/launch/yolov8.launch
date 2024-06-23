@@ -1,0 +1,43 @@
+<launch>
+    <arg name="model_path" default="/home/nv/zht_ws/yolov8n.pt" />
+    <arg name="bbox_conf_thre" default="0.6" />
+    <arg name="save_img" default="True" />
+    <arg name="save_frequency" default="1" />
+    <arg name="raw_img" default="True" />
+    <arg name="compress_img" default="True" />
+    <node name="py_yolov8" pkg="py_yolov8" type="py_yolov8.py" output="screen" >
+        <param name="model_path" value="$(arg model_path)" />
+        <param name="bbox_conf_thre" value="$(arg bbox_conf_thre)" />
+        <rosparam param="image_topics">
+        [
+            /oak_ffc_4p/image_CAM_A/compressed, 
+            /oak_ffc_4p/image_CAM_B/compressed, 
+            /oak_ffc_4p/image_CAM_C/compressed, 
+            /oak_ffc_4p/image_CAM_D/compressed,
+        ]
+        </rosparam>        
+        <param name="raw_img" value="$(arg raw_img)" />
+        <param name="compress_img" value="$(arg compress_img)" />
+        <param name="save_img" value="$(arg save_img)" />
+        <param name="save_frequency" value="$(arg save_frequency)" />
+    </node>
+
+    <group if="$(arg compress_img)">
+        <node name="image_transport_republish" pkg="image_transport" type="republish" output="screen" args="raw in:=/detection/image_CAM_C/annotated_image compressed out:=/detection/image_CAM_C/annotated_image" />
+    </group>
+
+    <node name="img_saver" pkg="py_yolov8" type="img_saver.py" output="screen" >
+        <param name="save_img" value="$(arg save_img)" />
+        <param name="save_frequency" value="$(arg save_frequency)" />
+        <rosparam param="image_topics">
+        [
+            /oak_ffc_4p/image_CAM_A/compressed, 
+            /oak_ffc_4p/image_CAM_B/compressed, 
+            /oak_ffc_4p/image_CAM_C/compressed, 
+            /oak_ffc_4p/image_CAM_D/compressed,
+        ]
+        </rosparam>
+    </node>
+
+    
+</launch>
