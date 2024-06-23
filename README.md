@@ -2,7 +2,7 @@
  * @Author: Zhao Hangtian jp-vip@qq.com
  * @Date: 2023-11-22 07:49:32
  * @LastEditors: Zhao Hangtian iamzhaohangtian@gmail.com
- * @LastEditTime: 2024-06-23 14:15:47
+ * @LastEditTime: 2024-06-23 14:21:38
  * @Description: 
  * 
  * Copyright (c) 2024 by Zhao Hangtian, All Rights Reserved. 
@@ -17,6 +17,9 @@
 
 - 推理模型解耦, 可选择任意pt模型.
 
+- 兼容ONNX
+
+- 兼容tensorRT
 
 # 1. 激活环境
 确保ROS1服务启动了`roscore`
@@ -87,15 +90,10 @@ float32[] bbox_conf
 
 ## 性能
 
-作为参考,yolov8在nvidia jetson orin nx 16gb上的推理速度大约是30ms/batch
+作为参考,yolov8n在nvidia jetson orin nx 16gb上的推理速度大约是30ms/batch (无TensorRT)
 
 
 ![alt text](misp/image.png)
 
 # 5. 其他
 因为包含了自定义消息类型,所以需要先激活本工程workspace才能看到bbox_info格式
-
-
-# TODO
-- [ ] model兼容ONNX
-- [ ] model兼容tensorRT
