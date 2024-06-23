@@ -2,7 +2,7 @@
  * @Author: Zhao Hangtian jp-vip@qq.com
  * @Date: 2023-11-22 07:49:32
  * @LastEditors: Zhao Hangtian iamzhaohangtian@gmail.com
- * @LastEditTime: 2024-05-30 13:20:19
+ * @LastEditTime: 2024-06-23 14:15:47
  * @Description: 
  * 
  * Copyright (c) 2024 by Zhao Hangtian, All Rights Reserved. 
@@ -78,6 +78,12 @@ float32[] bbox_conf
 ```
 
 ![alt text](misp/image-1.png)
+
+## 官方模型(class过滤)
+
+比如仅检测行人:
+
+`roslaunch py_yolov8 yolov8.launch model_path:=/home/nv/zht_ws/yolov8n.pt`
 
 ## 性能
 

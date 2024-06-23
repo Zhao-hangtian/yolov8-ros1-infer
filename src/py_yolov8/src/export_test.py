@@ -2,21 +2,21 @@
 Author: Zhao Hangtian iamzhaohangtian@gmail.com
 Date: 2023-11-22 05:40:58
 LastEditors: Zhao Hangtian iamzhaohangtian@gmail.com
-LastEditTime: 2024-06-23 13:27:40
+LastEditTime: 2024-06-23 14:12:54
 Description: 
 
 Copyright (c) 2023 by Zhao Hangtian, All Rights Reserved. 
 '''
 from ultralytics import YOLO
 
-model_path = '/home/nv/zht_ws/humen_augment.pt'
+model_path = '/home/nv/zht_ws/yolov8n.pt'
 # "yolov8n.pt"
 
 # Load a YOLOv8n PyTorch model
 model = YOLO(model_path)
 
 # Export the model
-model.export(format="engine", imgsz=(400, 640), batch=4)  # creates 'yolov8n.engine'
+model.export(format="engine", batch=4)  # creates 'yolov8n.engine'
 
 # Load the exported TensorRT model
 trt_model = YOLO(model_path.replace('.pt', '.engine'))
